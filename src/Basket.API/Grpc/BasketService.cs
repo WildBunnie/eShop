@@ -2,6 +2,7 @@
 using eShop.Basket.API.Repositories;
 using eShop.Basket.API.Extensions;
 using eShop.Basket.API.Model;
+using System.Diagnostics.Metrics;
 
 namespace eShop.Basket.API.Grpc;
 
@@ -9,6 +10,11 @@ public class BasketService(
     IBasketRepository repository,
     ILogger<BasketService> logger) : Basket.BasketBase
 {
+
+    private static readonly Meter meter = new("basket.api");
+    private static readonly Counter<int> BasketGetAmount = meter.CreateCounter<int>("basket_get_amount");
+    private static readonly Counter<int> BasketUpdateAmount = meter.CreateCounter<int>("basket_update_amount");
+
     [AllowAnonymous]
     public override async Task<CustomerBasketResponse> GetBasket(GetBasketRequest request, ServerCallContext context)
     {
@@ -27,6 +33,7 @@ public class BasketService(
 
         if (data is not null)
         {
+            BasketGetAmount.Add(1);
             return MapToCustomerBasketResponse(data);
         }
 
@@ -53,6 +60,7 @@ public class BasketService(
             ThrowBasketDoesNotExist(userId);
         }
 
+        BasketUpdateAmount.Add(1);
         return MapToCustomerBasketResponse(response);
     }
 
