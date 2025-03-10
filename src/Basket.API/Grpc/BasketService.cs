@@ -3,6 +3,7 @@ using eShop.Basket.API.Repositories;
 using eShop.Basket.API.Extensions;
 using eShop.Basket.API.Model;
 using System.Diagnostics.Metrics;
+using System.Diagnostics;
 
 namespace eShop.Basket.API.Grpc;
 
@@ -10,6 +11,7 @@ public class BasketService(
     IBasketRepository repository,
     ILogger<BasketService> logger) : Basket.BasketBase
 {
+    private static readonly ActivitySource activitySource = new("basket.api");
 
     private static readonly Meter meter = new("basket.api");
     private static readonly Counter<int> BasketGetAmount = meter.CreateCounter<int>("basket_get_amount");
@@ -18,9 +20,13 @@ public class BasketService(
     [AllowAnonymous]
     public override async Task<CustomerBasketResponse> GetBasket(GetBasketRequest request, ServerCallContext context)
     {
+        var activity = activitySource.StartActivity("GetBasket", ActivityKind.Server);
+
         var userId = context.GetUserIdentity();
         if (string.IsNullOrEmpty(userId))
         {
+            activity?.SetStatus(ActivityStatusCode.Error, "User not authenticated");
+            activity?.AddEvent(new ActivityEvent("ERROR: User not authenticated"));
             return new();
         }
 
@@ -33,6 +39,8 @@ public class BasketService(
 
         if (data is not null)
         {
+            activity?.SetStatus(ActivityStatusCode.Ok, "Basket retrieved successfully");
+            activity?.AddEvent(new ActivityEvent("SUCCESS: Basket retrieved successfully"));
             BasketGetAmount.Add(1);
             return MapToCustomerBasketResponse(data);
         }

@@ -12,6 +12,7 @@ builder.Services.AddOpenTelemetry()
         .AddAspNetCoreInstrumentation()
         .AddGrpcClientInstrumentation()
         .AddHttpClientInstrumentation()
+        .AddSource("basket.api")
         .AddOtlpExporter(o =>{ o.Endpoint = new Uri("http://localhost:4317"); })
     )
     .WithMetrics(metrics => metrics
