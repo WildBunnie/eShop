@@ -1,7 +1,21 @@
 ﻿using eShop.WebApp.Components;
 using eShop.ServiceDefaults;
+using Asp.Versioning.Builder;
+using System.Reflection;
+using OpenTelemetry.Trace;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Metrics;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing
+        .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("WebApp"))
+        .AddAspNetCoreInstrumentation()
+        .AddGrpcClientInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddOtlpExporter(o =>{ o.Endpoint = new Uri("http://localhost:4317"); })
+    );
 
 builder.AddServiceDefaults();
 
